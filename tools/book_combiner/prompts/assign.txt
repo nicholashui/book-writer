@@ -1,0 +1,11 @@
+---SYSTEM---
+Assign each heading record to exactly one primary outline node_id and optionally one secondary_node_id. Merge writes full text only into the primary. Do not invent title_yue or any Cantonese title. Output JSON only.
+---USER---
+Outline nodes (id, title_en, title_zh):
+{outline_nodes}
+
+Heading records:
+{records}
+
+Return JSON: {"assignments": [{"section_id": "...", "primary_node_id": "...", "secondary_node_id": null}]}
+Every input section_id must appear exactly once. secondary_node_id may be null. Do not add title_yue.

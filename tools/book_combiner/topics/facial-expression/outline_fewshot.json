@@ -1,0 +1,277 @@
+{
+  "title": {
+    "en": "Facial Expression",
+    "zh": "面部表情",
+    "yue_hint": "面部表情"
+  },
+  "parts": [
+    {
+      "id": "p-foundations",
+      "title_en": "Part I — Foundations",
+      "title_zh": "第一部 基础",
+      "chapters": [
+        {
+          "id": "c-what-are-microexpressions",
+          "title_en": "What are microexpressions",
+          "title_zh": "什么是微表情",
+          "sections": [
+            {
+              "id": "s-duration",
+              "title_en": "Duration and detection",
+              "title_zh": "时长与识别"
+            },
+            {
+              "id": "s-facs",
+              "title_en": "FACS and METT",
+              "title_zh": "FACS与METT"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-face-by-region",
+      "title_en": "Part II — The face by region",
+      "title_zh": "第二部 面部区域",
+      "chapters": [
+        {
+          "id": "c-forehead",
+          "title_en": "Forehead",
+          "title_zh": "额头",
+          "sections": [
+            {
+              "id": "s-forehead",
+              "title_en": "Forehead cues",
+              "title_zh": "额部线索"
+            }
+          ]
+        },
+        {
+          "id": "c-brows",
+          "title_en": "Brows",
+          "title_zh": "眉毛",
+          "sections": [
+            {
+              "id": "s-brows",
+              "title_en": "Brow movement",
+              "title_zh": "眉毛动作"
+            }
+          ]
+        },
+        {
+          "id": "c-eyes",
+          "title_en": "Eyes",
+          "title_zh": "眼睛",
+          "sections": [
+            {
+              "id": "s-eyes",
+              "title_en": "Eyes",
+              "title_zh": "眼睛"
+            },
+            {
+              "id": "s-pupils",
+              "title_en": "Pupils",
+              "title_zh": "瞳孔"
+            },
+            {
+              "id": "s-blinks",
+              "title_en": "Blinks",
+              "title_zh": "眨眼"
+            }
+          ]
+        },
+        {
+          "id": "c-nose",
+          "title_en": "Nose",
+          "title_zh": "鼻子",
+          "sections": [
+            {
+              "id": "s-nose",
+              "title_en": "Nose cues",
+              "title_zh": "鼻部线索"
+            }
+          ]
+        },
+        {
+          "id": "c-mouth",
+          "title_en": "Mouth",
+          "title_zh": "嘴",
+          "sections": [
+            {
+              "id": "s-mouth",
+              "title_en": "Lips and teeth",
+              "title_zh": "唇与牙"
+            }
+          ]
+        },
+        {
+          "id": "c-chin",
+          "title_en": "Chin",
+          "title_zh": "下巴",
+          "sections": [
+            {
+              "id": "s-chin",
+              "title_en": "Chin and jaw",
+              "title_zh": "下巴与下颌"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-basic-emotions",
+      "title_en": "Part III — Basic emotions on the face",
+      "title_zh": "第三部 脸上的基本情绪",
+      "chapters": [
+        {
+          "id": "c-seven-emotions",
+          "title_en": "The seven basic emotions",
+          "title_zh": "七种基本情绪",
+          "sections": [
+            {
+              "id": "s-anger",
+              "title_en": "Anger",
+              "title_zh": "愤怒"
+            },
+            {
+              "id": "s-fear",
+              "title_en": "Fear",
+              "title_zh": "恐惧"
+            },
+            {
+              "id": "s-sadness",
+              "title_en": "Sadness",
+              "title_zh": "悲伤"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-smiles",
+      "title_en": "Part IV — Smiles",
+      "title_zh": "第四部 微笑",
+      "chapters": [
+        {
+          "id": "c-smile-types",
+          "title_en": "Genuine and fake smiles",
+          "title_zh": "真笑与假笑",
+          "sections": [
+            {
+              "id": "s-duchenne",
+              "title_en": "Duchenne smile",
+              "title_zh": "杜乡微笑"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-voice",
+      "title_en": "Part V — Voice and speech",
+      "title_zh": "第五部 声音与说话",
+      "chapters": [
+        {
+          "id": "c-voice",
+          "title_en": "Voice cues",
+          "title_zh": "声音线索",
+          "sections": [
+            {
+              "id": "s-pitch",
+              "title_en": "Pitch and rate",
+              "title_zh": "音调与语速"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-body",
+      "title_en": "Part VI — Body",
+      "title_zh": "第六部 身体",
+      "chapters": [
+        {
+          "id": "c-hands",
+          "title_en": "Hands",
+          "title_zh": "手",
+          "sections": [
+            {
+              "id": "s-hands",
+              "title_en": "Hands and fingers",
+              "title_zh": "手与指"
+            }
+          ]
+        },
+        {
+          "id": "c-posture",
+          "title_en": "Posture and gait",
+          "title_zh": "姿态与步态",
+          "sections": [
+            {
+              "id": "s-legs",
+              "title_en": "Legs and feet",
+              "title_zh": "腿与脚"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-deception",
+      "title_en": "Part VII — Deception",
+      "title_zh": "第七部 欺骗",
+      "chapters": [
+        {
+          "id": "c-lying",
+          "title_en": "Lying and leakages",
+          "title_zh": "说谎与泄漏",
+          "sections": [
+            {
+              "id": "s-lie",
+              "title_en": "Detecting lies",
+              "title_zh": "测谎"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-applications",
+      "title_en": "Part VIII — Applications",
+      "title_zh": "第八部 应用",
+      "chapters": [
+        {
+          "id": "c-workplace",
+          "title_en": "Workplace and interview",
+          "title_zh": "职场与面试",
+          "sections": [
+            {
+              "id": "s-workplace",
+              "title_en": "Reading colleagues",
+              "title_zh": "读懂同事"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-own-emotions",
+      "title_en": "Part IX — Working with your own emotions",
+      "title_zh": "第九部 处理自己的情绪",
+      "chapters": [
+        {
+          "id": "c-self",
+          "title_en": "Self-regulation",
+          "title_zh": "自我调节",
+          "sections": [
+            {
+              "id": "s-self",
+              "title_en": "Working with your own emotions",
+              "title_zh": "处理自己的情绪"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+---SYSTEM---
+You are structuring one non-fiction book on {humanized_topic}. Produce a single topic-driven outline. Do not concatenate source TOCs. Do not drop a heading cluster that represents unique instruction; put peripheral unique instruction in a final Part. Use English slugs + Chinese original titles. Output JSON only, schema Outline.
+---USER---
+Create an outline fragment for lexicon bucket `{bucket}` of topic `{topic}`.
+
+Headings (stem|path|chars|excerpt):
+{headings}
+{fewshot_block}
+Return a JSON Outline object. Book title fields: en, zh, yue_hint. Parts, chapters, and sections: id, title_en, title_zh. Do not add title_yue on parts, chapters, or sections.
+---MERGE---
+Merge these per-bucket outline JSON trees into one combined Outline for topic `{topic}` ({humanized_topic}). Keep unique instruction; put peripheral unique instruction in a final Part. Output JSON only. Do not add title_yue on parts, chapters, or sections.
+
+{bucket_trees}
+{fewshot_block}

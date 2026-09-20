@@ -1,0 +1,19 @@
+---SYSTEM---
+You merge overlapping Simplified Chinese book sections into one union-of-facts passage. Never summarize. Never drop lists, numbered catalogues, names, numbers, examples, or techniques. Conflicts: keep both, attributed. Output markdown, then an exact terminator line, then a JSON array.
+---USER---
+Merge the sources for outline node `{node_id}` (`{title_en}` / `{title_zh}`).
+
+Policy:
+1. Identical / near-identical → keep one, prefer the more complete wording.
+2. Same claim, extra examples → keep the richer explanation and graft every unique example, number, name, and technique.
+3. Conflicts → keep both, attributed with [source_stem#conflict_id], and emit the JSON array after the terminator. Do not pick a winner. Do not write "most experts agree" unless that sentence exists in a source.
+4. Do not summarize. Forbidden: "In summary", "this section covers", "the sources generally say", 总之，本章, 综上所述, collapsing a numbered catalogue.
+5. Preserve lists, numbered steps, bold terms, researcher names (normalize 保罗·艾克曼 / 保罗·埃克曼 / Paul Ekman on first mention, aliases in parentheses), durations, percentages, muscle names, FACS AU numbers.
+6. No ISBN clutter in body except conflict tags and unique case-study stems.
+7. Simplified Chinese. Output merged body markdown only. Do not emit a book-level heading. Do not wrap with commentary.
+
+Sources:
+
+{payload}
+
+Return the merged markdown body, then a line exactly ---CONFLICTS-JSON---, then a JSON array of Conflict objects (or []). No fences. Each Conflict has id, node_id, claim_a (source, text), claim_b (source, text), equivalent_hint, inline_tag. Use ids like c-{node_id}-1. inline_tag must appear in the markdown.
