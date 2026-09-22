@@ -4,7 +4,6 @@
 .env
 # Compiled books at book-root (book/<topic>.md, book/<topic>.hk.md).
 # Does not match source markdown in book/<topic>/*.md (extra path segment).
-/book/*.md
 # Compiled books at testdata root (--book-root testdata).
 # Does not match testdata/<topic>/*.md sources (extra path segment).
 /testdata/*.md
