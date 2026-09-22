@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import math
 import os
 import re
+import threading
 from dataclasses import dataclass, field
 from itertools import combinations
 from pathlib import Path
@@ -33,6 +35,7 @@ from book_combiner.overlap import (
 )
 
 MERGE_TEMPERATURE = 0.2
+_CONFLICTS_LOCK = threading.Lock()
 MODEL_OUTPUT_CAP = 8192
 DEFAULT_CHARS_PER_TOKEN = 1.0
 SIZE_FLOOR_RATIO = 0.7
@@ -717,11 +720,12 @@ def write_conflicts_jsonl(path: Path, conflicts: list[Conflict]) -> None:
     if not conflicts:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
-    existing = path.read_text(encoding="utf-8") if path.is_file() else ""
-    blob = existing + "".join(
+    extra = "".join(
         json.dumps(c.model_dump(), ensure_ascii=False) + "\n" for c in conflicts
     )
-    atomic_write_text(path, blob)
+    with _CONFLICTS_LOCK:
+        existing = path.read_text(encoding="utf-8") if path.is_file() else ""
+        atomic_write_text(path, existing + extra)
 
 
 def merge_outline_node(
@@ -858,6 +862,7 @@ def run_merge(
     model: str | None = None,
     force: bool = False,
     max_input_chars: int = 6000,
+    concurrency: int = 1,
 ) -> list[GroupMergeResult]:
     artifacts_topic = artifacts_root / topic
     outline = load_outline(artifacts_topic / "outline" / "outline.json")
@@ -868,10 +873,12 @@ def run_merge(
     reset_conflicts_jsonl(artifacts_topic / "merge" / "conflicts.jsonl")
     results: list[GroupMergeResult] = []
     failures = 0
-    for node_id in sorted(by_node):
+    node_ids = sorted(by_node)
+
+    def _merge_one(node_id: str) -> GroupMergeResult:
         members = by_node[node_id]
         title_en, title_zh = titles.get(node_id, (node_id, node_id))
-        result = merge_outline_node(
+        return merge_outline_node(
             node_id=node_id,
             title_en=title_en,
             title_zh=title_zh,
@@ -882,6 +889,14 @@ def run_merge(
             model=model,
             force=force,
         )
+
+    workers = max(1, int(concurrency))
+    if workers == 1:
+        merged_nodes = [_merge_one(nid) for nid in node_ids]
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            merged_nodes = list(pool.map(_merge_one, node_ids))
+    for result in merged_nodes:
         results.append(result)
         if result.failed:
             failures += 1

@@ -12,6 +12,16 @@ class LLMError(Exception):
     """LLM call failed (missing auth, HTTP error after retries, or bad payload)."""
 
 
+def completed_text(record: CacheRecord) -> str:
+    """Return non-empty completion text; reject truncated or blank payloads."""
+    if record.finish_reason == "length":
+        raise LLMError("truncated LLM output (finish_reason=length)")
+    text = (record.response_text or "").strip()
+    if not text:
+        raise LLMError("empty LLM output")
+    return text
+
+
 class LLMClient(Protocol):
     """Provider-agnostic completion. Default backend is xAI chat completions."""
 

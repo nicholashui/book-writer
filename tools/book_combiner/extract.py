@@ -871,15 +871,27 @@ def write_extract_artifacts(result: ExtractFileResult, extract_dir: Path) -> Non
     )
 
 
+def extract_file_is_fresh(src_path: Path, extract_dir: Path, stem: str) -> bool:
+    """True when extract JSON exists and is at least as new as the source file."""
+    sections_path = extract_dir / f"{stem}.sections.json"
+    if not src_path.is_file() or not sections_path.is_file():
+        return False
+    return sections_path.stat().st_mtime >= src_path.stat().st_mtime
+
+
 def extract_from_manifest(
     manifest: Manifest,
     artifacts_root: Path,
     max_input_chars: int = 6000,
+    force: bool = False,
 ) -> list[ExtractFileResult]:
     extract_dir = artifacts_root / manifest.topic / "extract"
     results: list[ExtractFileResult] = []
     for source in manifest.sources:
         src_path = Path(source.path)
+        if not force and extract_file_is_fresh(src_path, extract_dir, source.stem):
+            print(f"[extract] {src_path.name} skip (fresh)")
+            continue
         text = src_path.read_text(encoding="utf-8")
         result = extract_markdown(text, source.stem, max_input_chars=max_input_chars)
         write_extract_artifacts(result, extract_dir)

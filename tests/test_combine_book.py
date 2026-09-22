@@ -511,5 +511,47 @@ class TestShim(unittest.TestCase):
             self.assertEqual(len(data["sources"]), 2)
 
 
+class TestFromStageSkipsExtract(unittest.TestCase):
+    def test_from_stage_assemble_does_not_rewrite_fresh_extract(self) -> None:
+        import os
+        import time
+
+        with tempfile.TemporaryDirectory() as tmp:
+            book_root = Path(tmp) / "book"
+            topic_dir = book_root / "demo"
+            topic_dir.mkdir(parents=True)
+            src = topic_dir / "a.md"
+            src.write_text("# Hi\n\nbody text for extract.\n", encoding="utf-8")
+            artifacts = Path(tmp) / "artifacts"
+            extract_dir = artifacts / "demo" / "extract"
+            extract_dir.mkdir(parents=True)
+            sections = extract_dir / "a.sections.json"
+            sections.write_text("[]\n", encoding="utf-8")
+            headings = artifacts / "demo" / "inventory" / "headings.json"
+            headings.parent.mkdir(parents=True)
+            headings.write_text("[]\n", encoding="utf-8")
+            time.sleep(0.05)
+            os.utime(sections, None)
+            os.utime(headings, None)
+            sec_mtime = sections.stat().st_mtime
+            head_mtime = headings.stat().st_mtime
+            code, out, err = _run_main(
+                [
+                    "demo",
+                    "--book-root",
+                    str(book_root),
+                    "--artifacts-root",
+                    str(artifacts),
+                    "--from-stage",
+                    "assemble",
+                ]
+            )
+            self.assertNotIn("sections=", out)
+            self.assertEqual(sections.read_text(encoding="utf-8"), "[]\n")
+            self.assertEqual(sections.stat().st_mtime, sec_mtime)
+            self.assertEqual(headings.stat().st_mtime, head_mtime)
+            self.assertEqual(headings.read_text(encoding="utf-8"), "[]\n")
+
+
 if __name__ == "__main__":
     unittest.main()

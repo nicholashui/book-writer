@@ -286,11 +286,14 @@ def main(argv: list[str] | None = None, llm_client=None) -> int:
             manifest,
             args.artifacts_root,
             max_input_chars=args.max_input_chars,
+            force=args.force,
         )
         last_done = "extract"
     if need_inventory:
-        run_inventory(manifest, args.artifacts_root)
-        last_done = "inventory"
+        headings = args.artifacts_root / args.topic / "inventory" / "headings.json"
+        if args.force or "inventory" in stages or not headings.is_file():
+            run_inventory(manifest, args.artifacts_root)
+            last_done = "inventory"
 
     need_llm = any(s in stages for s in LLM_STAGES)
     client = llm_client
@@ -349,6 +352,7 @@ def main(argv: list[str] | None = None, llm_client=None) -> int:
                 model=args.model,
                 force=args.force,
                 max_input_chars=args.max_input_chars,
+                concurrency=args.concurrency,
             )
             last_done = "merge"
         if "translate-en" in stages:
@@ -364,6 +368,7 @@ def main(argv: list[str] | None = None, llm_client=None) -> int:
                 force=args.force,
                 max_input_chars=args.max_input_chars,
                 strict_topic=args.strict_topic,
+                concurrency=args.concurrency,
             )
             last_done = "translate-en"
         if "translate-yue" in stages:
@@ -379,6 +384,7 @@ def main(argv: list[str] | None = None, llm_client=None) -> int:
                 force=args.force,
                 max_input_chars=args.max_input_chars,
                 strict_topic=args.strict_topic,
+                concurrency=args.concurrency,
             )
             last_done = "translate-yue"
         if "assemble" in stages:

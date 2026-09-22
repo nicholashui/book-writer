@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 from dataclasses import asdict
 from pathlib import Path
 
@@ -60,20 +61,22 @@ class DiskCache:
 
     def __init__(self, cache_dir: Path) -> None:
         self.cache_dir = Path(cache_dir)
+        self._lock = threading.Lock()
 
     def path_for(self, key: CacheKey) -> Path:
         return self.cache_dir / f"{cache_key_hash(key)}.json"
 
     def get(self, key: CacheKey) -> CacheRecord | None:
         path = self.path_for(key)
-        if not path.is_file():
-            return None
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            record = _record_from_dict(data)
-        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-            log.warning("Ignoring unreadable cache file %s: %s", path.name, type(exc).__name__)
-            return None
+        with self._lock:
+            if not path.is_file():
+                return None
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                record = _record_from_dict(data)
+            except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                log.warning("Ignoring unreadable cache file %s: %s", path.name, type(exc).__name__)
+                return None
         if cache_key_hash(record.key) != cache_key_hash(key):
             log.warning("Ignoring cache file %s: stored key does not match", path.name)
             return None
@@ -85,9 +88,8 @@ class DiskCache:
         tmp = path.with_name(path.name + ".partial")
         payload = asdict(record)
         payload["key"] = cache_key_dict(key)
-        tmp.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        os.replace(tmp, path)
+        blob = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+        with self._lock:
+            tmp.write_text(blob, encoding="utf-8")
+            os.replace(tmp, path)
         return path

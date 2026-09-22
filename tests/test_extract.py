@@ -18,9 +18,12 @@ if str(TOOLS) not in sys.path:
 from book_combiner.cli import main  # noqa: E402
 from book_combiner.extract import (  # noqa: E402
     content_hash,
+    extract_file_is_fresh,
+    extract_from_manifest,
     extract_markdown,
     replace_figure_captions,
 )
+from book_combiner.discover import Manifest, SourceEntry  # noqa: E402
 
 TESTDATA = ROOT / "testdata"
 OMNIBUS_MD = TESTDATA / "omnibus-three-books" / "9787510438820.md"
@@ -441,6 +444,45 @@ class TestCliExtractAndDryRun(unittest.TestCase):
             self.assertIn("preface", kinds)
             self.assertIn("quiz", kinds)
             self.assertIn("body", kinds)
+
+
+class TestExtractSkipFresh(unittest.TestCase):
+    def test_fresh_extract_json_is_not_rewritten(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = root / "book" / "demo" / "a.md"
+            src.parent.mkdir(parents=True)
+            src.write_text("# Hi\n\nbody\n", encoding="utf-8")
+            extract_dir = root / "artifacts" / "demo" / "extract"
+            extract_dir.mkdir(parents=True)
+            marker = extract_dir / "a.sections.json"
+            marker.write_text('[{"id":"keep"}]\n', encoding="utf-8")
+            import os
+            import time
+
+            time.sleep(0.05)
+            os.utime(marker, None)
+            mtime = marker.stat().st_mtime
+            self.assertTrue(extract_file_is_fresh(src, extract_dir, "a"))
+            manifest = Manifest(
+                topic="demo",
+                book_root=str(root / "book"),
+                sources=[
+                    SourceEntry(
+                        path=str(src),
+                        stem="a",
+                        sha256="x",
+                        bytes=1,
+                        chars=1,
+                        physical_lines=1,
+                    )
+                ],
+                skipped_epub=[],
+                generated_at="2026-01-01T00:00:00Z",
+            )
+            extract_from_manifest(manifest, root / "artifacts", force=False)
+            self.assertEqual(marker.read_text(encoding="utf-8"), '[{"id":"keep"}]\n')
+            self.assertEqual(marker.stat().st_mtime, mtime)
 
 
 if __name__ == "__main__":

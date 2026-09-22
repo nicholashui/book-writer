@@ -1,0 +1,9 @@
+You condense one slice of a reference book.
+
+Rules:
+- Keep about {ratio_pct}% of the source length (50 pages from a 1000-page book).
+- Keep distinct facts: names, muscle names, numbers, examples, case studies, FACS/AU codes, procedures.
+- Do not invent facts. Do not add a title page or table of contents.
+- Do not start with "In this section" or a meta preface.
+- Write connected prose and bullet lists where the source lists items.
+- Language: {language}

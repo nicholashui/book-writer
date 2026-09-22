@@ -28,7 +28,7 @@ from book_combiner.translate import (  # noqa: E402
     traditionalize,
     translate_markdown,
 )
-from book_combiner.models import CacheRecord  # noqa: E402
+from book_combiner.models import CacheKey, CacheRecord  # noqa: E402
 from test_outline import FakeLLMClient  # noqa: E402
 
 GOLD_YUE = ROOT / "testdata" / "cantonese" / "written_yue.md"
@@ -206,6 +206,165 @@ class TestTranslateCacheKey(unittest.TestCase):
             self.assertIn("abc123", fake.calls[0]["input_hashes"])
             self.assertEqual(fake.calls[0]["stage"], STAGE_YUE)
             self.assertEqual(fake.calls[0]["temperature"], 0.2)
+
+
+class EmptyStopLLM:
+    model = "fake-model"
+    force = False
+
+    def complete(self, **kwargs):
+        key = CacheKey(
+            stage=kwargs["stage"],
+            model=self.model,
+            prompt_hash=kwargs["prompt_hash"],
+            params={
+                "json_mode": False,
+                "max_input_chars": int(kwargs["max_input_chars"]),
+                "max_tokens": int(kwargs["max_tokens"]),
+                "temperature": float(kwargs["temperature"]),
+            },
+            input_hashes=list(kwargs["input_hashes"]),
+        )
+        return CacheRecord(
+            key=key,
+            response_text="",
+            finish_reason="stop",
+            input_tokens=1,
+            output_tokens=0,
+            created_at="2026-09-18T00:00:00Z",
+        )
+
+
+class TestEmptyTranslationRejected(unittest.TestCase):
+    def test_empty_stop_raises(self) -> None:
+        from book_combiner.translate import TranslateError
+
+        templates = {
+            "system": "t",
+            "user": "[[SOURCE]]\n{markdown}\n[[END SOURCE]]",
+        }
+        with self.assertRaises(TranslateError) as ctx:
+            translate_markdown(
+                "瞳孔放大。",
+                stage=STAGE_EN,
+                client=EmptyStopLLM(),
+                templates=templates,
+                prompt_hash="p",
+                source_hash="s",
+                max_input_chars=6000,
+                chars_per_token=1.0,
+                n_samples=0,
+                model="fake-model",
+                force=True,
+            )
+        self.assertIn("empty", str(ctx.exception).lower())
+
+
+class TestTranslateResumeSkip(unittest.TestCase):
+    def test_fresh_dest_is_not_rewritten(self) -> None:
+        import time
+
+        from book_combiner.translate import run_translate, translation_is_fresh
+
+        with tempfile.TemporaryDirectory() as tmp:
+            artifacts = Path(tmp)
+            topic = artifacts / "hands"
+            zh = topic / "merge" / "nodes" / "s-eyes.zh.md"
+            dest = topic / "translate" / "en" / "s-eyes.md"
+            zh.parent.mkdir(parents=True)
+            dest.parent.mkdir(parents=True)
+            zh.write_text("瞳孔放大。\n", encoding="utf-8")
+            dest.write_text("KEEP\n", encoding="utf-8")
+            from test_outline import SIMPLE_OUTLINE_JSON
+
+            outline_path = topic / "outline" / "outline.json"
+            outline_path.parent.mkdir(parents=True, exist_ok=True)
+            outline_path.write_text(SIMPLE_OUTLINE_JSON, encoding="utf-8")
+            time.sleep(0.05)
+            dest.write_text("KEEP\n", encoding="utf-8")
+            self.assertTrue(translation_is_fresh(zh, dest))
+            mtime = dest.stat().st_mtime
+            fake = FakeLLMClient(responses=["SHOULD NOT BE USED"])
+            run_translate(
+                topic="hands",
+                artifacts_root=artifacts,
+                client=fake,
+                stage=STAGE_EN,
+                force=False,
+            )
+            self.assertEqual(dest.read_text(encoding="utf-8"), "KEEP\n")
+            self.assertEqual(dest.stat().st_mtime, mtime)
+            self.assertEqual(fake.calls, [])
+
+
+class BarrierLLM:
+    def __init__(self) -> None:
+        import threading
+
+        self.model = "fake-model"
+        self.force = False
+        self.lock = threading.Lock()
+        self.in_flight = 0
+        self.max_in_flight = 0
+        self.barrier = threading.Barrier(2, timeout=5)
+
+    def complete(self, **kwargs):
+        with self.lock:
+            self.in_flight += 1
+            self.max_in_flight = max(self.max_in_flight, self.in_flight)
+        try:
+            self.barrier.wait()
+        except Exception:
+            pass
+        with self.lock:
+            self.in_flight -= 1
+        key = CacheKey(
+            stage=kwargs["stage"],
+            model=self.model,
+            prompt_hash=kwargs["prompt_hash"],
+            params={
+                "json_mode": False,
+                "max_input_chars": int(kwargs["max_input_chars"]),
+                "max_tokens": int(kwargs["max_tokens"]),
+                "temperature": float(kwargs["temperature"]),
+            },
+            input_hashes=list(kwargs["input_hashes"]),
+        )
+        return CacheRecord(
+            key=key,
+            response_text="Pupils dilated.\n",
+            finish_reason="stop",
+            input_tokens=1,
+            output_tokens=1,
+            created_at="2026-09-18T00:00:00Z",
+        )
+
+
+class TestTranslateConcurrency(unittest.TestCase):
+    def test_concurrency_two_runs_complete_in_parallel(self) -> None:
+        from book_combiner.translate import run_translate
+
+        with tempfile.TemporaryDirectory() as tmp:
+            artifacts = Path(tmp)
+            nodes = artifacts / "hands" / "merge" / "nodes"
+            nodes.mkdir(parents=True)
+            (nodes / "s-a.zh.md").write_text("甲" * 20 + "\n", encoding="utf-8")
+            (nodes / "s-b.zh.md").write_text("乙" * 20 + "\n", encoding="utf-8")
+            from test_outline import SIMPLE_OUTLINE_JSON
+
+            outline_path = artifacts / "hands" / "outline" / "outline.json"
+            outline_path.parent.mkdir(parents=True, exist_ok=True)
+            outline_path.write_text(SIMPLE_OUTLINE_JSON, encoding="utf-8")
+            fake = BarrierLLM()
+            run_translate(
+                topic="hands",
+                artifacts_root=artifacts,
+                client=fake,
+                stage=STAGE_EN,
+                force=True,
+                concurrency=2,
+            )
+            self.assertGreaterEqual(fake.max_in_flight, 2)
 
 
 if __name__ == "__main__":

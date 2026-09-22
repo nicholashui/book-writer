@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import re
 from pathlib import Path
 
@@ -367,7 +368,9 @@ def translate_markdown(
             model=model,
             force=force,
         )
-        if record.finish_reason == "length":
+        if record.finish_reason == "length" or not (record.response_text or "").strip():
+            if not (record.response_text or "").strip() and record.finish_reason != "length":
+                raise TranslateError("empty translation")
             if len(chunk) <= 1:
                 raise TranslateError("translation truncated and cannot split further")
             smaller = split_translate_chunks(chunk, max(1, len(chunk) // 2))
@@ -428,6 +431,13 @@ def translate_path_for(artifacts_topic: Path, stage: str, node_id: str, *, appen
     return base / f"{node_id}.md"
 
 
+def translation_is_fresh(zh_path: Path, dest: Path) -> bool:
+    """Skip rewrite when dest exists and is at least as new as the ZH source."""
+    if not dest.is_file() or not zh_path.is_file():
+        return False
+    return dest.stat().st_mtime >= zh_path.stat().st_mtime
+
+
 def translate_one_file(
     zh_path: Path,
     dest: Path,
@@ -471,6 +481,7 @@ def run_translate(
     force: bool = False,
     max_input_chars: int = 6000,
     strict_topic: bool = False,
+    concurrency: int = 1,
 ) -> list[Path]:
     if stage not in (STAGE_EN, STAGE_YUE):
         raise TranslateError(f"unsupported translate stage {stage!r}")
@@ -500,27 +511,21 @@ def run_translate(
     if chars_per_token <= 0:
         chars_per_token = DEFAULT_CHARS_PER_TOKEN
     written: list[Path] = []
+    jobs: list[tuple[str, Path, Path]] = []
     for node_id in zh_nodes:
         zh_path = nodes_dir / f"{node_id}.zh.md"
         dest = translate_path_for(artifacts_topic, stage, node_id, appendix=False)
-        text = translate_one_file(
-            zh_path,
-            dest,
-            stage=stage,
-            client=client,
-            templates=templates,
-            prompt_hash=prompt_hash,
-            max_input_chars=max_input_chars,
-            chars_per_token=chars_per_token,
-            n_samples=n_samples,
-            model=model,
-            force=force,
-        )
-        print(f"[{stage}] {node_id} {len(zh_path.read_text(encoding='utf-8'))} zh chars -> {len(text)} out chars")
-        written.append(dest)
+        jobs.append((node_id, zh_path, dest))
     for blob_id in list_translatable_appendices(artifacts_topic):
         zh_path = artifacts_topic / "merge" / "appendices" / f"{blob_id}.zh.md"
         dest = translate_path_for(artifacts_topic, stage, blob_id, appendix=True)
+        jobs.append((blob_id, zh_path, dest))
+
+    def _run_job(job: tuple[str, Path, Path]) -> tuple[str, Path, str, bool]:
+        node_id, zh_path, dest = job
+        if not force and translation_is_fresh(zh_path, dest):
+            text = dest.read_text(encoding="utf-8")
+            return node_id, dest, text, True
         text = translate_one_file(
             zh_path,
             dest,
@@ -534,6 +539,18 @@ def run_translate(
             model=model,
             force=force,
         )
-        print(f"[{stage}] {blob_id} {len(zh_path.read_text(encoding='utf-8'))} zh chars -> {len(text)} out chars")
+        return node_id, dest, text, False
+
+    workers = max(1, int(concurrency))
+    if workers == 1:
+        outcomes = [_run_job(job) for job in jobs]
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            outcomes = list(pool.map(_run_job, jobs))
+    for node_id, dest, text, skipped in outcomes:
+        if skipped:
+            print(f"[{stage}] {node_id} skip (fresh)")
+        else:
+            print(f"[{stage}] {node_id} -> {len(text)} out chars")
         written.append(dest)
     return written
